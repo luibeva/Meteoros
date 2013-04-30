@@ -39,7 +39,7 @@ def mainUpload(stdscr):
 		print "Unable to access config file : AirPi.cfg"
                 exit(1)
 	config = ConfigParser.ConfigParser()
-        print config.read('AirPi.cfg')
+	config.read('AirPi.cfg')
         
 
 	WDOGON = config.getboolean("AirPi", "Watchdog")
@@ -184,10 +184,25 @@ def mainUpload(stdscr):
 			if LOGGER:
 				#Attempt to submit the data to cosm
 				try:
-					pac = eeml.datastream.Cosm(API_URL, API_KEY)
+					# Set all the location details from the config
+                                        if config.getboolean("Cosm", "SetLocation"):
+                                                locname = config.get("Cosm", "Name")
+                                                locexp = config.get("Cosm", "Exposure")
+                                                locdis = config.get("Cosm", "Disposition")
+                                                locdom = config.get("Cosm", "Domain")
+                                                loclat = config.get("Cosm", "Latitude")
+                                                loclon = config.get("Cosm", "Longitude")
+                                                locele = config.get("Cosm", "Elevation")
+                                        	env = eeml.Environment()
+                                        	loc = eeml.Location(locdom, locname, loclat, loclon, locele, locexp, locdis)
+						env.setLocation(loc)
+						pac = eeml.datastream.Cosm(API_URL, API_KEY, env)
+					else:
+						pac = eeml.datastream.Cosm(API_URL, API_KEY)
+
 					for dp in datas:
 						if dp.uploadID!=-1:
-							pac.update([eeml.Data(dp.uploadID, dp.roundedValue())])
+							pac.update([eeml.Data(dp.uploadID, dp.roundedValue(), tags=[dp.name])])
 					pac.put()
 					if stdscr == None:
 						print "Uploaded data at " + str(datetime.datetime.now())
